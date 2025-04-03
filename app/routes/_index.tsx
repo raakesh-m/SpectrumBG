@@ -299,9 +299,53 @@ export const action = async ({
         });
       }
     } else {
-      // API processing would go here
+      // API processing using Remove.bg
       try {
+        // First get the transparent background from Remove.bg API
         processedImageUrl = await useRemoveBgApi(imageBase64);
+        
+        // If customization is requested, use our backend for customization
+        if ((backgroundType !== 'transparent' || (modelType && modelType !== 'none')) && processedImageUrl) {
+          // Check if the server is running before attempting customization
+          try {
+            console.log('Checking U-2-Net server health at http://localhost:5000/health...');
+            const healthResponse = await fetch('http://localhost:5000/health', {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json'
+              }
+            });
+            
+            if (!healthResponse.ok) {
+              console.error(`Health check failed for customization: ${healthResponse.status} ${healthResponse.statusText}`);
+              // Continue with just the Remove.bg result if server is not available
+            } else {
+              // Server is available, so apply customization
+              console.log('Applying customization to Remove.bg result...');
+              const customizeResponse = await fetch('http://localhost:5000/customize-product', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  image: processedImageUrl,
+                  backgroundType,
+                  modelType: modelType === 'none' ? null : modelType
+                })
+              });
+              
+              if (customizeResponse.ok) {
+                const customizeResult = await customizeResponse.json();
+                if (customizeResult.success && customizeResult.processedImageUrl) {
+                  processedImageUrl = customizeResult.processedImageUrl;
+                }
+              }
+            }
+          } catch (customizeError) {
+            console.error('Error during customization after Remove.bg:', customizeError);
+            // Continue with just the Remove.bg result if customization fails
+          }
+        }
       } catch (error) {
         console.error('API error details:', error);
         
@@ -419,14 +463,9 @@ export default function Index() {
 
   // Add effect to reset customization options when processingMethod changes
   useEffect(() => {
-    // If using remove.bg API, disable customization options
-    if (processingMethod === 'api') {
-      setCustomizationDisabled(true);
-      setBackgroundType('transparent');
-      setModelType('none');
-    } else {
-      setCustomizationDisabled(false);
-    }
+    // The Remove.bg API should still allow customization via our backend
+    // We don't need to disable customization at all
+    setCustomizationDisabled(false);
   }, [processingMethod]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -805,9 +844,9 @@ export default function Index() {
                     <div className="pt-4 border-t border-gray-200">
                       <h3 className="text-lg font-medium text-gray-800 mb-4">
                         Customization Options
-                        {customizationDisabled && (
-                          <span className="ml-2 text-sm text-red-500">
-                            (Disabled when using Remove.bg API)
+                        {processingMethod === 'api' && (
+                          <span className="ml-2 text-sm text-amber-600">
+                            (Background removal by Remove.bg, customization by our backend)
                           </span>
                         )}
                       </h3>
@@ -821,7 +860,6 @@ export default function Index() {
                             value={backgroundType}
                             onChange={(e) => setBackgroundType(e.target.value as BackgroundOption)}
                             className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-lg"
-                            disabled={customizationDisabled}
                           >
                             <optgroup label="Basic">
                               <option value="transparent">Transparent (No Background)</option>
@@ -837,6 +875,15 @@ export default function Index() {
                               <option value="ai-generated">AI Generated Background</option>
                             </optgroup>
                           </select>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {backgroundType === 'transparent' 
+                              ? 'The image will have a transparent background'
+                              : backgroundType.includes('studio')
+                                ? 'Real studio backdrop for professional look'
+                                : backgroundType === 'ai-generated'
+                                  ? 'AI-generated patterns and textures'
+                                  : 'Simple solid color background'}
+                          </p>
                         </div>
                         
                         {/* Model overlay options */}
@@ -847,13 +894,21 @@ export default function Index() {
                             value={modelType}
                             onChange={(e) => setModelType(e.target.value as ModelOverlayOption)}
                             className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-lg"
-                            disabled={customizationDisabled}
                           >
                             <option value="none">None</option>
                             <option value="model-standing">Model (Standing)</option>
                             <option value="mannequin">Mannequin</option>
                             <option value="flat-lay">Flat Lay</option>
                           </select>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {modelType === 'none'
+                              ? 'Display product without any model'
+                              : modelType === 'model-standing'
+                                ? 'Place product on standing human silhouette'
+                                : modelType === 'mannequin'
+                                  ? 'Display product on retail mannequin form'
+                                  : 'Present product in a flat-lay photography style'}
+                          </p>
                         </div>
                       </div>
                     </div>
