@@ -14,6 +14,10 @@ import {
   ChoiceList
 } from '@shopify/polaris';
 
+// Define types for background and model options
+type BackgroundOption = 'transparent' | 'white' | 'black' | 'gray' | 'studio-light' | 'studio-dark' | 'ai-generated';
+type ModelOverlayOption = 'none' | 'model-standing' | 'model-wearing' | 'mannequin' | 'flat-lay';
+
 // Define the action data type
 type ActionData = {
   success: boolean;
@@ -22,6 +26,8 @@ type ActionData = {
   errorMessage?: string;
   isConnectionError?: boolean;
   processingMethod?: 'local' | 'api';
+  backgroundType?: BackgroundOption;
+  modelType?: ModelOverlayOption;
 };
 
 // Function to choose the appropriate background removal method
@@ -171,21 +177,104 @@ export const action = async ({
   const formData = await request.formData();
 
   const imageBase64 = formData.get('imageBase64')?.toString() || '';
-  const processingMethod = formData.get('processingMethod')?.toString() || 'local';
+  const processingMethod = formData.get('processingMethod')?.toString() as 'local' | 'api' || 'local';
+  const backgroundType = formData.get('backgroundType')?.toString() as BackgroundOption || 'transparent';
+  const modelType = formData.get('modelType')?.toString() as ModelOverlayOption || 'none';
   
   console.log('Processing method:', processingMethod);
+  console.log('Background type:', backgroundType);
+  console.log('Model type:', modelType);
   
   try {
     let processedImageUrl;
     
     if (processingMethod === 'local') {
       try {
-        processedImageUrl = await useLocalBackgroundRemoval(imageBase64);
+        // First, use the existing endpoint to remove background
+        console.log('Using remove-background endpoint...');
+        
+        // Check if the server is running
+        try {
+          console.log('Checking U-2-Net server health at http://localhost:5000/health...');
+          const healthResponse = await fetch('http://localhost:5000/health', {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (!healthResponse.ok) {
+            console.error(`Health check failed: ${healthResponse.status} ${healthResponse.statusText}`);
+            throw new Error(`U-2-Net server health check failed. Server might be starting up or has issues.`);
+          }
+        } catch (healthError) {
+          if (healthError instanceof Error) {
+            if (healthError.message.includes('fetch') || healthError.message.includes('Failed to fetch')) {
+              throw new Error(`Could not connect to U-2-Net server. Make sure it's running at http://localhost:5000. Try running 'python python_backend/simplified_u2net_server.py' in your terminal.`);
+            }
+            throw healthError;
+          }
+          throw new Error(`Could not connect to U-2-Net server: ${String(healthError)}`);
+        }
+        
+        // Use traditional background removal endpoint
+        const response = await fetch('http://localhost:5000/remove-background', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            image: imageBase64
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Background removal failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.processedImageUrl) {
+          processedImageUrl = result.processedImageUrl;
+          
+          // If customization is requested, add it in a second step
+          if ((backgroundType !== 'transparent' || (modelType && modelType !== 'none')) && result.processedImageUrl) {
+            try {
+              console.log('Applying customization using customize-product endpoint...');
+              const customizeResponse = await fetch('http://localhost:5000/customize-product', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  image: processedImageUrl,
+                  backgroundType,
+                  modelType: modelType === 'none' ? null : modelType
+                })
+              });
+              
+              if (!customizeResponse.ok) {
+                console.error(`Customization failed: ${customizeResponse.status} ${customizeResponse.statusText}`);
+                // Continue with just the background-removed image
+              } else {
+                const customizeResult = await customizeResponse.json();
+                if (customizeResult.success && customizeResult.processedImageUrl) {
+                  processedImageUrl = customizeResult.processedImageUrl;
+                }
+              }
+            } catch (customizeError) {
+              console.error('Customization error:', customizeError);
+              // If customization fails, continue with just the background-removed image
+            }
+          }
+        } else {
+          throw new Error(result.error || 'Unknown error during processing');
+        }
       } catch (error) {
         console.error('Processing error details:', error);
         
         let isConnectionError = false;
-        let errorMessage = 'Unknown error occurred during background removal';
+        let errorMessage = 'Unknown error occurred during processing';
         
         if (error instanceof Error) {
           errorMessage = error.message;
@@ -201,16 +290,16 @@ export const action = async ({
           }
         }
         
-        return {
+        return json<ActionData>({
           success: false,
           error: errorMessage,
-          errorMessage: errorMessage,
+          errorMessage,
           isConnectionError,
           processingMethod
-        };
+        });
       }
     } else {
-      // Use external Remove.bg API
+      // API processing would go here
       try {
         processedImageUrl = await useRemoveBgApi(imageBase64);
       } catch (error) {
@@ -222,28 +311,29 @@ export const action = async ({
           errorMessage = error.message;
         }
         
-        return { 
+        return json<ActionData>({ 
           success: false, 
           error: errorMessage,
-          errorMessage: errorMessage,
+          errorMessage,
           processingMethod
-        };
+        });
       }
     }
     
-    return { 
-      success: true, 
+    return json<ActionData>({
+      success: true,
       processedImageUrl,
-      processingMethod
-    };
+      processingMethod,
+      backgroundType,
+      modelType
+    });
   } catch (error) {
-    console.error('Error:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error',
-      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    console.error('Unknown error:', error);
+    return json<ActionData>({
+      success: false,
+      error: 'An unexpected error occurred during processing',
       processingMethod
-    };
+    });
   }
 };
 
@@ -297,7 +387,7 @@ export default function Index() {
     }
   };
   
-  const actionData = useActionData<typeof action>() as ActionData | undefined;
+  const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isProcessing = navigation.state === 'submitting';
   const submit = useSubmit();
@@ -311,6 +401,14 @@ export default function Index() {
   const [modalContent, setModalContent] = useState('');
   const [processingMethod, setProcessingMethod] = useState<'local' | 'api'>('local');
 
+  // Add state for customization options
+  const [backgroundType, setBackgroundType] = useState<BackgroundOption>('transparent');
+  const [modelType, setModelType] = useState<ModelOverlayOption>('none');
+  const [showCustomizationOptions, setShowCustomizationOptions] = useState(false);
+  const [customizedImageUrl, setCustomizedImageUrl] = useState<string | null>(null);
+  const [isCustomizing, setIsCustomizing] = useState(false);
+  const [customizationDisabled, setCustomizationDisabled] = useState(false);
+
   // Reset processing state when we get action data
   useEffect(() => {
     if (actionData) {
@@ -318,6 +416,18 @@ export default function Index() {
       setErrorMessage(errorMsg);
     }
   }, [actionData]);
+
+  // Add effect to reset customization options when processingMethod changes
+  useEffect(() => {
+    // If using remove.bg API, disable customization options
+    if (processingMethod === 'api') {
+      setCustomizationDisabled(true);
+      setBackgroundType('transparent');
+      setModelType('none');
+    } else {
+      setCustomizationDisabled(false);
+    }
+  }, [processingMethod]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -415,6 +525,56 @@ export default function Index() {
     setModalOpen(true);
   };
 
+  // New function to customize the product
+  const handleCustomizeProduct = async () => {
+    if (!actionData?.processedImageUrl) return;
+    
+    setIsCustomizing(true);
+    
+    try {
+      const response = await fetch('http://localhost:5000/customize-product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: actionData.processedImageUrl,
+          backgroundType,
+          modelType: modelType === 'none' ? null : modelType
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Customization failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.processedImageUrl) {
+        setCustomizedImageUrl(result.processedImageUrl);
+      } else {
+        throw new Error(result.error || 'Unknown error during customization');
+      }
+    } catch (error) {
+      console.error('Customization error:', error);
+      // Show error message to user
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage('Failed to customize product');
+      }
+    } finally {
+      setIsCustomizing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (actionData?.success && actionData?.processedImageUrl) {
+      // When processing is complete and successful, set the customized image URL
+      setCustomizedImageUrl(actionData.processedImageUrl);
+    }
+  }, [actionData]);
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Modern Gradient Header */}
@@ -454,7 +614,7 @@ export default function Index() {
             
             <div className="hidden md:flex items-center justify-end md:flex-1 lg:w-0">
               <a 
-                href="https://github.com/yourusername/ai-product-customizer" 
+                href="https://github.com/raakesh-m/aiprod" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="ml-8 whitespace-nowrap inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-primary-darkest bg-accent hover:bg-white"
@@ -486,7 +646,7 @@ export default function Index() {
                   Documentation
                 </Link>
                 <a 
-                  href="https://github.com/yourusername/ai-product-customizer" 
+                  href="https://github.com/raakesh-m/aiprod" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="block pl-3 pr-4 py-2 text-base font-medium text-white hover:bg-primary-darkest rounded-md"
@@ -631,7 +791,7 @@ export default function Index() {
                         defaultValue="local"
                         onChange={(e) => setProcessingMethod(e.target.value as 'local' | 'api')}
                       >
-                        <option value="local">U-2-Net (Deep Learning)</option>
+                        <option value="local">U-2-Net (Simple Local AI)</option>
                         <option value="api">Remove.bg API (Cloud)</option>
                       </select>
                       <p className="mt-1 text-sm text-gray-500">
@@ -641,7 +801,64 @@ export default function Index() {
                       </p>
                     </div>
 
-                    {/* Submit Button */}
+                    {/* ADDED: Customization Options */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <h3 className="text-lg font-medium text-gray-800 mb-4">
+                        Customization Options
+                        {customizationDisabled && (
+                          <span className="ml-2 text-sm text-red-500">
+                            (Disabled when using Remove.bg API)
+                          </span>
+                        )}
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Background options */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Background</label>
+                          <select
+                            name="backgroundType"
+                            value={backgroundType}
+                            onChange={(e) => setBackgroundType(e.target.value as BackgroundOption)}
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-lg"
+                            disabled={customizationDisabled}
+                          >
+                            <optgroup label="Basic">
+                              <option value="transparent">Transparent (No Background)</option>
+                              <option value="white">White</option>
+                              <option value="black">Black</option>
+                              <option value="gray">Light Gray</option>
+                            </optgroup>
+                            <optgroup label="Studio">
+                              <option value="studio-light">Studio Light</option>
+                              <option value="studio-dark">Studio Dark</option>
+                            </optgroup>
+                            <optgroup label="AI Generated">
+                              <option value="ai-generated">AI Generated Background</option>
+                            </optgroup>
+                          </select>
+                        </div>
+                        
+                        {/* Model overlay options */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Model Overlay</label>
+                          <select
+                            name="modelType"
+                            value={modelType}
+                            onChange={(e) => setModelType(e.target.value as ModelOverlayOption)}
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-lg"
+                            disabled={customizationDisabled}
+                          >
+                            <option value="none">None</option>
+                            <option value="model-standing">Model (Standing)</option>
+                            <option value="mannequin">Mannequin</option>
+                            <option value="flat-lay">Flat Lay</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Submit Button - Updated text */}
                     <div>
                       <button
                         type="submit"
@@ -657,7 +874,7 @@ export default function Index() {
                             Processing...
                           </>
                         ) : (
-                          <>Apply AI Background Removal</>
+                          <>Process & Customize Image</>
                         )}
                       </button>
                     </div>
@@ -779,73 +996,50 @@ export default function Index() {
                     </div>
                   </div>
                 </div>
-              ) : actionData?.processedImageUrl && (
+              ) : actionData?.processedImageUrl && customizedImageUrl && (
                 <div className="bg-white rounded-xl shadow-md overflow-hidden">
                   <div className="p-6">
                     <div className="flex items-center">
-                      <div className="flex-shrink-0 bg-green-100 p-2 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <div className="flex-shrink-0 bg-primary-light p-2 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                       </div>
-                      <h2 className="ml-4 text-xl font-bold text-gray-800">AI-Enhanced Image</h2>
+                      <h2 className="ml-4 text-xl font-bold text-gray-800">Customized Product</h2>
                     </div>
                     
                     <div className="mt-6">
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="bg-gradient-to-r from-gray-200 to-white rounded-lg p-2">
-                          <p className="text-xs text-center text-gray-500 font-medium uppercase tracking-wide mb-1">Original</p>
-                          {previewUrl && (
-                            <div className="relative rounded-lg overflow-hidden h-40 bg-gray-100 border">
-                              <img src={previewUrl} alt="Original" className="w-full h-full object-contain" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="bg-gradient-to-r from-primary-light to-white bg-opacity-10 rounded-lg p-2">
-                          <p className="text-xs text-center text-gray-500 font-medium uppercase tracking-wide mb-1">No Background</p>
-                          <div className="relative rounded-lg overflow-hidden h-40 bg-opacity-25 bg-gray-100 border">
-                            <div className="absolute inset-0 grid bg-white" style={{ backgroundSize: '20px 20px', backgroundImage: 'linear-gradient(to right, #f0f0f0 1px, transparent 1px), linear-gradient(to bottom, #f0f0f0 1px, transparent 1px)' }}>
-                            </div>
-                            <img src={actionData.processedImageUrl} alt="AI-Enhanced" className="w-full h-full object-contain relative z-10" />
-                          </div>
+                      <div className="bg-gray-50 rounded-lg border overflow-hidden">
+                        <div className="relative p-2">
+                          <img 
+                            src={customizedImageUrl} 
+                            alt="Customized product" 
+                            className="w-full h-auto object-contain max-h-96"
+                          />
                         </div>
                       </div>
                       
-                      <div className="bg-green-50 rounded-lg p-4 mb-6">
-                        <div className="flex">
-                          <div className="flex-shrink-0">
-                            <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <div className="ml-3">
-                            <h3 className="text-sm font-medium text-green-800">
-                              Processing Successful
-                            </h3>
-                            <div className="mt-2 text-sm text-green-700">
-                              <p>
-                                {actionData.processingMethod === 'local'
-                                  ? "Your image was successfully processed using U-2-Net Deep Learning segmentation." 
-                                  : "Your image was successfully processed using the Remove.bg API to replace the background."}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="mt-4 flex flex-col sm:flex-row gap-4">
                         <button 
-                          onClick={handleDownload}
-                          className="flex-1 flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = customizedImageUrl;
+                            link.download = 'customized-product.png';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          className="flex-1 flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-secondary hover:bg-secondary-dark transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
-                          Download
+                          Download Customized
                         </button>
                         <button 
                           onClick={handleUseInStore}
-                          className="flex-1 flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                          className="flex-1 flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-secondary hover:bg-secondary-dark transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -958,7 +1152,7 @@ export default function Index() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-accent">Connect</h3>
               <ul className="mt-4 space-y-4">
                 <li>
-                  <a href="https://github.com/yourusername/ai-product-customizer" className="text-accent hover:text-white transition-colors flex items-center">
+                  <a href="https://github.com/raakesh-m/aiprod" className="text-accent hover:text-white transition-colors flex items-center">
                     <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
                     </svg>

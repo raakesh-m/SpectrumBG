@@ -129,7 +129,7 @@ export default function DocsPage() {
                     <li className="flex flex-col">
                       <span className="font-medium">Clone the repository from GitHub</span>
                       <code className="mt-2 px-2 py-1 bg-gray-100 rounded-md text-sm block">
-                        git clone https://github.com/yourusername/ai-product-customizer.git
+                        git clone https://github.com/raakesh-m/aiprod.git
                       </code>
                     </li>
                     <li className="flex flex-col">
@@ -181,7 +181,7 @@ export default function DocsPage() {
                           <span className="font-bold mr-2">•</span>
                           <div>
                             <p className="font-medium">U-2-Net:</p>
-                            <p>Local processing using a deep learning model</p>
+                            <p>Local processing using a Simpe Local AI model</p>
                           </div>
                         </div>
                         <div className="flex items-start">
@@ -219,11 +219,11 @@ export default function DocsPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
                     </svg>
                   </div>
-                  <h2 className="ml-4 text-xl font-bold text-primary-darkest">U-2-Net Deep Learning</h2>
+                  <h2 className="ml-4 text-xl font-bold text-primary-darkest">U-2-Net Simpe Local AI</h2>
                 </div>
                 <div className="mt-6 prose prose-indigo">
                   <p>
-                    U-2-Net is a state-of-the-art deep learning model for salient object detection. It uses a nested U-structure architecture to capture fine details and complex structures in images.
+                    U-2-Net is a state-of-the-art Simpe Local AI model for salient object detection. It uses a nested U-structure architecture to capture fine details and complex structures in images.
                   </p>
                   
                   <div className="mt-4 bg-white border-2 border-primary rounded-lg p-4">
