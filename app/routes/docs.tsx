@@ -181,7 +181,7 @@ export default function DocsPage() {
                           <span className="font-bold mr-2">•</span>
                           <div>
                             <p className="font-medium">U-2-Net:</p>
-                            <p>Local processing using a Simpe Local AI model</p>
+                            <p>Local processing using a Simple Local AI model</p>
                           </div>
                         </div>
                         <div className="flex items-start">
@@ -219,11 +219,11 @@ export default function DocsPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
                     </svg>
                   </div>
-                  <h2 className="ml-4 text-xl font-bold text-primary-darkest">U-2-Net Simpe Local AI</h2>
+                  <h2 className="ml-4 text-xl font-bold text-primary-darkest">U-2-Net Simple Local AI</h2>
                 </div>
                 <div className="mt-6 prose prose-indigo">
                   <p>
-                    U-2-Net is a state-of-the-art Simpe Local AI model for salient object detection. It uses a nested U-structure architecture to capture fine details and complex structures in images.
+                    U-2-Net is a state-of-the-art Simple Local AI model for salient object detection. It uses a nested U-structure architecture to capture fine details and complex structures in images.
                   </p>
                   
                   <div className="mt-4 bg-white border-2 border-primary rounded-lg p-4">
@@ -294,6 +294,50 @@ export default function DocsPage() {
                     </div>
                     <div className="bg-primary bg-opacity-10 rounded-md p-3">
                       <p className="text-xs text-primary-dark font-medium">Paid plans available for more volume</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Add a Tech Stack section */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-primary-dark bg-opacity-30">
+                    <svg className="h-6 w-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </div>
+                  <h2 className="ml-4 text-xl font-bold text-primary-darkest">Tech Stack</h2>
+                </div>
+                <div className="mt-6 prose prose-indigo">
+                  <div className="mt-2 space-y-6">
+                    <div>
+                      <h3 className="text-md font-semibold text-primary-darkest">Frontend</h3>
+                      <ul className="mt-2 list-disc list-inside text-sm text-gray-800 space-y-1">
+                        <li><span className="font-medium">Framework:</span> Remix (React-based web framework)</li>
+                        <li><span className="font-medium">Styling:</span> TailwindCSS</li>
+                        <li><span className="font-medium">State Management:</span> React Hooks & Context</li>
+                        <li><span className="font-medium">Image Processing:</span> Client-side base64 handling</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-md font-semibold text-primary-darkest">Backend</h3>
+                      <ul className="mt-2 list-disc list-inside text-sm text-gray-800 space-y-1">
+                        <li><span className="font-medium">Server:</span> Python Flask API</li>
+                        <li><span className="font-medium">Image Processing:</span> U-2-Net deep learning model & PIL (Python Imaging Library)</li>
+                        <li><span className="font-medium">Model Overlays:</span> Custom generated silhouettes with transparency</li>
+                        <li><span className="font-medium">Studio Backgrounds:</span> Real studio background images</li>
+                      </ul>
+                    </div>
+
+                    <div className="mt-4 bg-white border-2 border-amber-300 rounded-lg p-4">
+                      <h3 className="text-sm font-semibold text-amber-700">Development Note</h3>
+                      <p className="mt-2 text-sm text-gray-800">
+                        This code was lovingly crafted (and slightly panicked over) in 3 hours. Proceed with caution and a sense of humor! 😅
+                      </p>
                     </div>
                   </div>
                 </div>

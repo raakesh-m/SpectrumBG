@@ -1,15 +1,83 @@
-# Product Customizer with AI Background Removal
+# Product Customization Tool with AI Background Removal
 
-An AI-enhanced product customizer for e-commerce, enabling users to upload product images, remove backgrounds, and visualize products in different contexts.
+> **Warning**: This code was lovingly crafted (and slightly panicked over) in 3-hour. Proceed with caution and a sense of humor! 😅 If you find any bugs, please submit an issue (or better yet, a pull request with a fix!).
+
+## Tech Stack
+
+### Frontend
+- **Framework**: [Remix](https://remix.run/) - React-based web framework
+- **Styling**: TailwindCSS
+- **State Management**: React Hooks & Context
+- **Image Processing**: Client-side base64 handling
+
+### Backend
+- **Server**: Python Flask API
+- **Image Processing**: 
+  - U-2-Net deep learning model for background removal
+  - PIL (Python Imaging Library) for image manipulation
+- **Model Overlays**: Custom generated silhouettes with transparency
+- **Studio Backgrounds**: Real studio background images
 
 ## Features
+- AI-powered background removal using U-2-Net
+- Multiple customization options:
+  - Different background types (transparent, white, black, studio-light, studio-dark)
+  - Model overlays (standing model, mannequin, flat-lay)
+- Easy-to-use interface with drag and drop support
+- Preview functionality
 
-- Image upload and background removal
-- Local processing using U-2-Net AI model
-- Optional API-based processing using Remove.bg API
-- Responsive UI with dark mode support
-- Detailed documentation
-- Mobile-optimized interface
+## Getting Started
+
+### Prerequisites
+- Node.js (v14+)
+- Python 3.8+
+- Pytorch
+
+### Installation
+
+1. Clone this repository
+2. Install frontend dependencies:
+```
+npm install
+```
+
+3. Install backend dependencies:
+```
+cd python_backend
+pip install -r requirements.txt
+```
+
+4. Run the setup scripts to download background images and generate model overlays:
+```
+python download_studio_backgrounds.py
+python generate_model_overlays.py
+```
+
+### Running the Application
+
+1. Start the Python backend:
+```
+cd python_backend
+python simplified_u2net_server.py
+```
+
+2. Start the frontend development server:
+```
+npm run dev
+```
+
+3. Open your browser and navigate to http://localhost:3000
+
+## How It Works
+
+The application uses a two-step process:
+1. Background removal using either local U-2-Net deep learning or the remove.bg API
+2. Customization by applying studio backgrounds and model overlays
+
+For the U-2-Net (local) processing option, all processing is done on your machine. The remove.bg API option requires an API key.
+
+## License
+MIT
 
 ## Updates
 
@@ -117,7 +185,6 @@ For the Remove.bg API method, you'll need to:
 product-customizer/
 ├── app/                      # Remix frontend application
 │   ├── components/           # UI components
-│   ├── routes/               # Application routes
 │   │   ├── _index.tsx        # Main application page
 │   │   ├── docs.tsx          # Documentation page
 │   │   └── ...
