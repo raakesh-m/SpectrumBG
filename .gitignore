@@ -1,0 +1,50 @@
+# Node dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build outputs
+/build
+/public/build
+/.cache
+
+# Environment and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python
+**/__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Model weights (large files)
+python_backend/saved_models/u2net/*.pth
+python_backend/saved_models/u2net_portrait/*.pth
+
+# IDE / Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store 

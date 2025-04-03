@@ -1,0 +1,13 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background element -->
+  <rect width="32" height="32" rx="6" fill="#4F46E5" />
+  <rect x="5" y="5" width="22" height="22" rx="4" fill="white" opacity="0.2" />
+  
+  <!-- Camera/AI elements -->
+  <circle cx="16" cy="16" r="8" fill="#4F46E5" stroke="white" stroke-width="2" />
+  <circle cx="16" cy="16" r="4" fill="white" />
+  
+  <!-- Background transformations -->
+  <path d="M24 8L28 8C29.1046 8 30 8.89543 30 10L30 22C30 23.1046 29.1046 24 28 24L24 24L24 8Z" fill="#22C55E" />
+  <path d="M24 8L26 10L26 22L24 24L24 8Z" fill="#16A34A" />
+</svg> 

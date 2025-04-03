@@ -1,0 +1,21 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main circular background -->
+  <circle cx="100" cy="100" r="90" fill="#6366F1" />
+  
+  <!-- Inner shapes -->
+  <circle cx="100" cy="100" r="70" fill="#4F46E5" />
+  <circle cx="100" cy="100" r="50" fill="#4338CA" stroke="#E0E7FF" stroke-width="3" />
+  
+  <!-- Camera lens elements -->
+  <circle cx="100" cy="100" r="35" fill="#312E81" stroke="#E0E7FF" stroke-width="2" />
+  <circle cx="100" cy="100" r="20" fill="#A5B4FC" />
+  <circle cx="100" cy="100" r="10" fill="#FFFFFF" />
+  
+  <!-- Accent elements for background removal concept -->
+  <path d="M160 100C160 75.6 140.4 56 116 56V144C140.4 144 160 124.4 160 100Z" fill="#EC4899" />
+  <path d="M170 100C170 70.2 146 46 116 46V55C141 55 161 74.8 161 100C161 125.2 141 145 116 145V154C146 154 170 129.8 170 100Z" fill="#F472B6" />
+  
+  <!-- Highlight spots -->
+  <circle cx="85" cy="85" r="6" fill="#FFFFFF" opacity="0.7" />
+  <circle cx="75" cy="70" r="3" fill="#FFFFFF" opacity="0.5" />
+</svg> 
