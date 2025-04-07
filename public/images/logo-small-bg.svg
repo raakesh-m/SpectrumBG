@@ -1,0 +1,26 @@
+<svg width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main circular background -->
+  <circle cx="25" cy="25" r="23" fill="#6366F1" />
+  
+  <!-- Inner shapes -->
+  <circle cx="25" cy="25" r="18" fill="#4F46E5" />
+  <circle cx="25" cy="25" r="13" fill="#4338CA" stroke="#E0E7FF" stroke-width="1.5" />
+  
+  <!-- Camera lens elements -->
+  <circle cx="25" cy="25" r="9" fill="#312E81" stroke="#E0E7FF" stroke-width="1" />
+  <circle cx="25" cy="25" r="5" fill="#A5B4FC" />
+  <circle cx="25" cy="25" r="2.5" fill="#FFFFFF" />
+  
+  <!-- Star elements for background removal concept -->
+  <!-- Star 1 -->
+  <path d="M10 20L10.8 22.3H13.3L11.2 23.9L12 26.2L10 24.6L8 26.2L8.8 23.9L6.7 22.3H9.2L10 20Z" fill="#F472B6" />
+  
+  <!-- Star 2 -->
+  <path d="M35 15L35.6 16.9H37.6L36 18.1L36.6 20L35 18.8L33.4 20L34 18.1L32.4 16.9H34.4L35 15Z" fill="#F472B6" />
+  
+  <!-- Accent element -->
+  <path d="M40 25C40 19.5 36.5 15 31 15V16.5C35.5 16.5 38.5 20 38.5 25C38.5 30 35.5 33.5 31 33.5V35C36.5 35 40 30.5 40 25Z" fill="#F472B6" />
+  
+  <!-- Highlight spot -->
+  <circle cx="21" cy="21" r="1.5" fill="#FFFFFF" opacity="0.7" />
+</svg> 

@@ -1,0 +1,27 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="24" fill="url(#gradient_primary)"/>
+  
+  <!-- Primary star -->
+  <path d="M64 30.5L68.4 45.5H84.2L71.9 54.9L76.3 69.9L64 60.5L51.7 69.9L56.1 54.9L43.8 45.5H59.6L64 30.5Z" fill="white"/>
+  
+  <!-- Top right star -->
+  <path d="M96 42L98 49.5H106L99.5 54.2L101.5 61.7L96 57L90.5 61.7L92.5 54.2L86 49.5H94L96 42Z" fill="white" fill-opacity="0.85"/>
+  
+  <!-- Bottom right star -->
+  <path d="M86 78L87.5 83.5H93L88.5 87L90 92.5L86 89L82 92.5L83.5 87L79 83.5H84.5L86 78Z" fill="white" fill-opacity="0.75"/>
+  
+  <!-- Shimmer elements -->
+  <circle cx="112" cy="28" r="6" fill="white" fill-opacity="0.4"/>
+  <circle cx="24" cy="72" r="4" fill="white" fill-opacity="0.3"/>
+  <circle cx="76" cy="104" r="8" fill="white" fill-opacity="0.2"/>
+  <circle cx="44" cy="96" r="3" fill="white" fill-opacity="0.5"/>
+  <circle cx="36" cy="24" r="5" fill="white" fill-opacity="0.25"/>
+  
+  <!-- Add gradient definitions -->
+  <defs>
+    <linearGradient id="gradient_primary" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1D0B78"/>
+      <stop offset="1" stop-color="#361AAE"/>
+    </linearGradient>
+  </defs>
+</svg> 

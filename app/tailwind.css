@@ -2,36 +2,201 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+@layer base {
+  /* Custom scrollbar styling */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    border: 2px solid transparent;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Focus styles */
+  *:focus-visible {
+    outline: 2px solid #624AE6;
+    outline-offset: 2px;
+  }
+  
+  /* Responsive aspect ratio */
+  .aspect-w-4 {
+    position: relative;
+    padding-bottom: calc(var(--tw-aspect-h) / var(--tw-aspect-w) * 100%);
+  }
+  
+  .aspect-w-4 > * {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+  
+  .aspect-w-4.aspect-h-3 {
+    --tw-aspect-w: 4;
+    --tw-aspect-h: 3;
+  }
 }
 
-/* Mobile enhancements */
 @layer components {
-  .mobile-card {
-    @apply rounded-xl shadow-md overflow-hidden bg-white p-4 sm:p-6;
+  /* Custom toggle switch */
+  .toggle-checkbox {
+    @apply absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-200 appearance-none cursor-pointer transition-all duration-300;
   }
   
-  .mobile-button {
-    @apply w-full sm:w-auto flex justify-center items-center py-3 px-4 border border-transparent 
-    rounded-lg shadow-sm text-sm font-medium text-white bg-primary transition-colors
-    hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary;
+  .toggle-checkbox:checked {
+    @apply right-0 border-primary-500;
+    @apply transform translate-x-full;
   }
   
-  .mobile-input-area {
-    @apply p-4 sm:p-8 border-2 border-dashed rounded-lg bg-gray-50 hover:bg-gray-100
-    transition-colors flex flex-col items-center justify-center cursor-pointer;
+  .toggle-label {
+    @apply block h-6 overflow-hidden rounded-full bg-gray-200 cursor-pointer transition-all duration-300;
+  }
+  
+  .toggle-checkbox:checked + .toggle-label {
+    @apply bg-primary-500;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-xl shadow-soft-lg border border-neutral-100 overflow-hidden;
+  }
+  
+  .card-body {
+    @apply p-6;
+  }
+  
+  /* Button variants */
+  .btn {
+    @apply inline-flex items-center justify-center font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-icon {
+    @apply p-2 rounded-full;
+  }
+  
+  /* Tooltip */
+  .tooltip {
+    @apply relative inline-block;
+  }
+  
+  .tooltip .tooltip-content {
+    @apply invisible absolute z-10 px-3 py-2 bg-neutral-800 text-white text-xs rounded opacity-0 transition-opacity duration-300;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  
+  .tooltip:hover .tooltip-content {
+    @apply visible opacity-100;
+  }
+  
+  .tooltip .tooltip-content::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #1E1E2D transparent transparent transparent;
+  }
+  
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-primary {
+    @apply bg-primary-100 text-primary-700;
+  }
+  
+  .badge-secondary {
+    @apply bg-secondary-100 text-secondary-500;
+  }
+  
+  .badge-success {
+    @apply bg-tertiary-100 text-tertiary-500;
+  }
+  
+  /* Custom checkboxes */
+  .custom-checkbox {
+    @apply h-5 w-5 rounded border-gray-300 text-primary-500 focus:ring-primary-500;
   }
 }
 
 @layer utilities {
-  .animate-fadeIn {
-    animation: fadeIn 0.2s ease-out forwards;
+  /* Glass morphism */
+  .glass {
+    @apply bg-white bg-opacity-70 backdrop-blur-md backdrop-filter;
   }
   
-  .touch-feedback {
-    @apply active:scale-95 transition-transform duration-75;
+  .glass-dark {
+    @apply bg-neutral-900 bg-opacity-70 backdrop-blur-md backdrop-filter;
+  }
+  
+  /* Text shadow */
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+  }
+  
+  /* Custom gradient text */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, var(--color-primary-700) 0%, var(--color-primary-400) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .text-gradient-secondary {
+    background: linear-gradient(135deg, var(--color-secondary-500) 0%, var(--color-primary-400) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  /* Image hover zoom effect */
+  .hover-zoom {
+    @apply transition-transform duration-300;
+  }
+  
+  .hover-zoom:hover {
+    @apply transform scale-105;
+  }
+  
+  /* Truncate text with ellipsis after multiple lines */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 } 

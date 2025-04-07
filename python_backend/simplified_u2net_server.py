@@ -16,9 +16,13 @@ import random
 import time
 import torch.nn.functional as F
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, 
-                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Initialize Flask app and configure CORS
+app = Flask(__name__)
+# Enable CORS for all routes and all origins
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+# Enable logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('u2net-server')
 
 # Set up command line arguments parser
@@ -56,15 +60,6 @@ except ImportError as e:
     logger.error("Make sure you have installed all dependencies:")
     logger.error("pip install torch torchvision matplotlib scikit-image")
     sys.exit(1)
-
-app = Flask(__name__)
-# Configure CORS for production
-if PRODUCTION:
-    # In production, be more restrictive with CORS
-    CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "https://your-domain.com"]}})
-else:
-    # In development, allow all origins
-    CORS(app)
 
 # Custom transform function that doesn't rely on the U-2-Net data_loader
 class CustomRescale:
@@ -194,137 +189,10 @@ def process_image(net, image):
 BACKGROUND_PRESETS = {
     'white': (255, 255, 255, 255),
     'black': (0, 0, 0, 255),
-    'gray': (220, 220, 220, 255),
 }
 
 # Get the directory paths
 current_dir = os.path.dirname(os.path.abspath(__file__))
-BACKGROUNDS_DIR = os.path.join(current_dir, "assets", "backgrounds")
-MODELS_DIR = os.path.join(current_dir, "assets", "models")
-
-# Dictionary of model overlay templates
-MODEL_OVERLAY_TEMPLATES = {
-    'model-standing': 'model-standing.png',
-    'mannequin': 'mannequin.png',
-    'flat-lay': 'flat-lay.png',
-}
-
-# Check if we have real studio backgrounds
-def get_available_backgrounds():
-    backgrounds = {}
-    
-    # Check for studio light backgrounds
-    studio_light_backgrounds = [f for f in os.listdir(BACKGROUNDS_DIR) if f.startswith('studio-light-') and f.endswith('.jpg')]
-    if studio_light_backgrounds:
-        backgrounds['studio-light'] = studio_light_backgrounds
-    
-    # Check for studio dark backgrounds
-    studio_dark_backgrounds = [f for f in os.listdir(BACKGROUNDS_DIR) if f.startswith('studio-dark-') and f.endswith('.jpg')]
-    if studio_dark_backgrounds:
-        backgrounds['studio-dark'] = studio_dark_backgrounds
-    
-    return backgrounds
-
-# Check if we have real model overlay images
-def get_available_model_overlays():
-    available_models = {}
-    
-    for model_name, model_file in MODEL_OVERLAY_TEMPLATES.items():
-        model_path = os.path.join(MODELS_DIR, model_file)
-        if os.path.exists(model_path):
-            available_models[model_name] = model_path
-            
-    return available_models
-
-# Dictionary to store available backgrounds and models
-try:
-    AVAILABLE_BACKGROUNDS = get_available_backgrounds()
-    logger.info(f"Found background images: {AVAILABLE_BACKGROUNDS}")
-    
-    AVAILABLE_MODELS = get_available_model_overlays()
-    logger.info(f"Found model overlay images: {list(AVAILABLE_MODELS.keys())}")
-except Exception as e:
-    logger.warning(f"Could not load assets: {e}")
-    AVAILABLE_BACKGROUNDS = {}
-    AVAILABLE_MODELS = {}
-
-def generate_background(width, height, style='gradient'):
-    """Generate a synthetic background based on the requested style"""
-    background = Image.new('RGBA', (width, height), (255, 255, 255, 255))
-    
-    if style == 'gradient':
-        # Create a gradient background (top to bottom)
-        from PIL import ImageDraw
-        draw = ImageDraw.Draw(background)
-        
-        # Choose some random gradient colors
-        colors = [
-            (245, 245, 245), (235, 235, 235), (225, 225, 225), 
-            (215, 215, 215), (205, 205, 205), (195, 195, 195)
-        ]
-        
-        color1 = random.choice(colors)
-        color2 = random.choice(colors)
-        
-        for y in range(height):
-            # Calculate gradient color at this y position
-            r = int(color1[0] + (color2[0] - color1[0]) * (y / height))
-            g = int(color1[1] + (color2[1] - color1[1]) * (y / height))
-            b = int(color1[2] + (color2[2] - color1[2]) * (y / height))
-            
-            draw.line([(0, y), (width, y)], fill=(r, g, b))
-    
-    elif style == 'studio-light':
-        # Create a radial gradient like a studio backdrop
-        from PIL import ImageDraw, ImageFilter
-        draw = ImageDraw.Draw(background)
-        
-        # Draw a white background
-        draw.rectangle([(0, 0), (width, height)], fill=(255, 255, 255))
-        
-        # Create a radial gradient
-        center_x, center_y = width // 2, height // 2
-        max_radius = max(width, height)
-        
-        for r in range(0, max_radius, 2):
-            # Calculate gradient value based on distance from center
-            gray_value = max(230, 255 - (r * 25 // max_radius))
-            
-            # Draw a circle with decreasing brightness
-            draw.ellipse(
-                [(center_x - r, center_y - r), (center_x + r, center_y + r)],
-                outline=(gray_value, gray_value, gray_value)
-            )
-        
-        # Blur the image for smoother gradient
-        background = background.filter(ImageFilter.GaussianBlur(radius=10))
-    
-    elif style == 'studio-dark':
-        # Create a dark radial gradient
-        from PIL import ImageDraw, ImageFilter
-        draw = ImageDraw.Draw(background)
-        
-        # Draw a dark background
-        draw.rectangle([(0, 0), (width, height)], fill=(30, 30, 30))
-        
-        # Create a radial gradient
-        center_x, center_y = width // 2, height // 2
-        max_radius = max(width, height)
-        
-        for r in range(0, max_radius, 2):
-            # Calculate gradient value based on distance from center
-            gray_value = max(20, 50 - (r * 30 // max_radius))
-            
-            # Draw a circle with decreasing brightness
-            draw.ellipse(
-                [(center_x - r, center_y - r), (center_x + r, center_y + r)],
-                outline=(gray_value, gray_value, gray_value)
-            )
-        
-        # Blur the image for smoother gradient
-        background = background.filter(ImageFilter.GaussianBlur(radius=10))
-    
-    return background
 
 def apply_background(image, background_type):
     """Apply a background to a transparent image"""
@@ -335,37 +203,9 @@ def apply_background(image, background_type):
     width, height = image.size
     
     # Create the background
-    if background_type in ['white', 'black', 'gray']:
+    if background_type in ['white', 'black']:
         # Solid color background
         background = Image.new('RGBA', (width, height), BACKGROUND_PRESETS[background_type])
-    
-    elif background_type in ['studio-light', 'studio-dark']:
-        # Check if we have real studio backgrounds available
-        if background_type in AVAILABLE_BACKGROUNDS and AVAILABLE_BACKGROUNDS[background_type]:
-            # Use a real studio background image
-            try:
-                # Select a random background from the available ones
-                bg_filename = random.choice(AVAILABLE_BACKGROUNDS[background_type])
-                bg_path = os.path.join(BACKGROUNDS_DIR, bg_filename)
-                logger.info(f"Using real background image: {bg_path}")
-                
-                # Open and resize the background image
-                background = Image.open(bg_path).convert('RGBA')
-                background = background.resize((width, height), Image.Resampling.LANCZOS)
-            except Exception as e:
-                logger.error(f"Error using real background, falling back to generated: {e}")
-                # Fall back to generated background
-                background = generate_background(width, height, style=background_type)
-        else:
-            # Generate a studio backdrop
-            logger.info(f"No real backgrounds found for {background_type}, using generated")
-            background = generate_background(width, height, style=background_type)
-    
-    elif background_type == 'ai-generated':
-        # In a real app, you'd call an AI model to generate a background
-        # For now, we'll just create a gradient as a placeholder
-        background = generate_background(width, height, style='gradient')
-    
     else:
         # Default to white if unknown
         background = Image.new('RGBA', (width, height), (255, 255, 255, 255))
@@ -376,581 +216,133 @@ def apply_background(image, background_type):
     
     return composite
 
-def apply_model_overlay(product_image, model_type):
-    """Apply product to a model image template"""
-    width, height = product_image.size
-    
-    # Check if we have a real model overlay image
-    if model_type in AVAILABLE_MODELS:
-        try:
-            # Load the model overlay image
-            model_path = AVAILABLE_MODELS[model_type]
-            logger.info(f"Using real model overlay: {model_path}")
-            
-            model_image = Image.open(model_path).convert('RGBA')
-            
-            # Resize the model image to fit the product
-            orig_width, orig_height = model_image.size
-            scale_factor = min(width * 1.5 / orig_width, height * 2.5 / orig_height)
-            new_width = int(orig_width * scale_factor)
-            new_height = int(orig_height * scale_factor)
-            
-            model_image = model_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-            
-            # Create a new composite image large enough to fit both
-            composite_width = max(width, new_width)
-            composite_height = max(height, new_height)
-            composite = Image.new('RGBA', (composite_width, composite_height), (0, 0, 0, 0))
-            
-            # Position the model in the center
-            model_x = (composite_width - new_width) // 2
-            model_y = (composite_height - new_height) // 2
-            composite.paste(model_image, (model_x, model_y), model_image)
-            
-            # Determine where to place the product on the model
-            if model_type == 'model-standing':
-                # Place product on the chest for standing model
-                product_x = (composite_width - width) // 2
-                product_y = model_y + (new_height // 4)  
-            elif model_type == 'mannequin':
-                # Place product on the chest for mannequin
-                product_x = (composite_width - width) // 2
-                product_y = model_y + (new_height // 4)
-            elif model_type == 'flat-lay':
-                # Center the product for flat-lay
-                product_x = (composite_width - width) // 2
-                product_y = (composite_height - height) // 2
-            else:
-                # Default placement (center)
-                product_x = (composite_width - width) // 2
-                product_y = (composite_height - height) // 2
-                
-            # Paste the product onto the model
-            composite.paste(product_image, (product_x, product_y), product_image)
-            
-            return composite
-            
-        except Exception as e:
-            logger.error(f"Error using real model overlay, falling back to generated: {e}")
-            # Fall back to generated model
-    
-    # If no real model image available or loading failed, use the generated placeholder
-    logger.info(f"No real model overlay found for {model_type}, using generated")
-    
-    # Create a simulated model image - in production you'd load real model images
-    model_image = Image.new('RGBA', (width, height * 2), (0, 0, 0, 0))
-    
-    # Draw a simplified model silhouette
-    from PIL import ImageDraw
-    draw = ImageDraw.Draw(model_image)
-    
-    if model_type == 'model-standing':
-        # Simple standing human silhouette
-        center_x = width // 2
-        head_y = height // 4
-        
-        # Draw head
-        head_radius = width // 8
-        draw.ellipse(
-            [(center_x - head_radius, head_y - head_radius), 
-             (center_x + head_radius, head_y + head_radius)],
-            fill=(200, 200, 200, 255)
-        )
-        
-        # Draw body
-        draw.rectangle(
-            [(center_x - width//6, head_y + head_radius), 
-             (center_x + width//6, head_y + head_radius + height//2)],
-            fill=(180, 180, 180, 255)
-        )
-        
-        # Draw legs
-        draw.rectangle(
-            [(center_x - width//6, head_y + head_radius + height//2), 
-             (center_x - width//16, head_y + head_radius + height)],
-            fill=(180, 180, 180, 255)
-        )
-        draw.rectangle(
-            [(center_x + width//16, head_y + head_radius + height//2), 
-             (center_x + width//6, head_y + head_radius + height)],
-            fill=(180, 180, 180, 255)
-        )
-        
-        # Position for the product (chest area)
-        product_x = center_x - (product_image.width // 2)
-        product_y = head_y + head_radius + height//10
-        
-    elif model_type == 'mannequin':
-        # Simple mannequin silhouette
-        center_x = width // 2
-        top_y = height // 6
-        
-        # Draw mannequin head
-        head_radius = width // 10
-        draw.ellipse(
-            [(center_x - head_radius, top_y - head_radius), 
-             (center_x + head_radius, top_y + head_radius)],
-            fill=(220, 220, 220, 255)
-        )
-        
-        # Draw mannequin body
-        draw.rectangle(
-            [(center_x - width//5, top_y + head_radius), 
-             (center_x + width//5, top_y + head_radius + height//1.5)],
-            fill=(230, 230, 230, 255)
-        )
-        
-        # Position for the product (chest area)
-        product_x = center_x - (product_image.width // 2)
-        product_y = top_y + head_radius + height//10
-        
-    elif model_type == 'flat-lay':
-        # For flat-lay, just center the product
-        product_x = (width - product_image.width) // 2
-        product_y = (height - product_image.height) // 2
-        
-    else:  # default
-        # Generic model placeholder
-        center_x = width // 2
-        top_y = height // 6
-        
-        # Draw simplified model
-        draw.rectangle(
-            [(center_x - width//4, top_y), 
-             (center_x + width//4, top_y + height//1.2)],
-            fill=(200, 200, 200, 255)
-        )
-        
-        # Position for the product (center)
-        product_x = center_x - (product_image.width // 2)
-        product_y = top_y + height//6
-    
-    # Paste the product onto the model
-    model_image.paste(product_image, (product_x, product_y), product_image)
-    
-    return model_image
-
-# Simple HTML template for the home page
-HOME_TEMPLATE = '''
-<!DOCTYPE html>
-<html>
-<head>
-    <title>U-2-Net Background Removal API</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        h1 {
-            color: #333;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-        h2 {
-            color: #444;
-            margin-top: 30px;
-        }
-        code {
-            background: #f4f4f4;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-        }
-        pre {
-            background: #f4f4f4;
-            padding: 10px;
-            border-radius: 4px;
-            overflow-x: auto;
-        }
-        .endpoint {
-            margin: 20px 0;
-            padding: 10px;
-            border-left: 4px solid #ddd;
-        }
-        .method {
-            font-weight: bold;
-            color: #07c;
-        }
-    </style>
-</head>
-<body>
-    <h1>U-2-Net Background Removal API</h1>
-    
-    <div>
-        <p>Status: <strong>Running</strong></p>
-        <p><a href="/health">Check API health</a></p>
-    </div>
-    
-    <h2>API Endpoints</h2>
-    
-    <div class="endpoint">
-        <h3><span class="method">GET</span> /health</h3>
-        <p>Check if the server is operational.</p>
-        <p><a href="/health">Try it</a></p>
-    </div>
-    
-    <div class="endpoint">
-        <h3><span class="method">POST</span> /remove-background</h3>
-        <p>Remove background from an image.</p>
-        <h4>Request Body (JSON):</h4>
-        <pre>
-{
-  "image": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
-}
-        </pre>
-    </div>
-    
-    <div class="endpoint">
-        <h3><span class="method">POST</span> /customize-product</h3>
-        <p>Apply background and model overlay to a transparent image.</p>
-        <h4>Request Body (JSON):</h4>
-        <pre>
-{
-  "image": "data:image/png;base64,iVBORw0KGgo...",
-  "backgroundType": "studio-light",
-  "modelType": "model-standing"
-}
-        </pre>
-    </div>
-    
-    <div class="endpoint">
-        <h3><span class="method">POST</span> /process-and-customize</h3>
-        <p>Remove background and apply customization in a single step.</p>
-        <h4>Request Body (JSON):</h4>
-        <pre>
-{
-  "image": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
-  "backgroundType": "studio-light",
-  "modelType": "model-standing"
-}
-        </pre>
-    </div>
-    
-    <div class="endpoint">
-        <h3><span class="method">GET</span> /customization-options</h3>
-        <p>Get available background and model options.</p>
-        <p><a href="/customization-options">Try it</a></p>
-    </div>
-    
-    <h2>Usage Example</h2>
-    <pre>
-fetch('http://localhost:5000/process-and-customize', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    image: "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
-    backgroundType: "studio-light",
-    modelType: "model-standing"
-  })
-})
-.then(response => response.json())
-.then(data => console.log(data));
-    </pre>
-</body>
-</html>
-'''
+# Add the required endpoints
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint to verify server status"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': time.time(),
+        'model_loaded': net is not None if 'net' in globals() else False
+    })
 
 @app.route('/', methods=['GET'])
 def index():
-    logger.debug("Root endpoint called")
-    return Response(HOME_TEMPLATE, mimetype='text/html')
-
-@app.route('/api', methods=['GET'])
-def api_index():
-    logger.debug("API index endpoint called")
+    """Root endpoint with API information"""
     return jsonify({
-        "service": "U-2-Net Background Removal API",
-        "status": "running",
-        "endpoints": {
-            "/health": "Check if server is operational",
-            "/remove-background": "Remove background from image",
-            "/customize-product": "Apply background and model overlay to a transparent image",
-            "/customization-options": "Get available background and model options"
-        }
-    })
-
-@app.route('/health', methods=['GET'])
-def health():
-    logger.debug("Health endpoint called")
-    return jsonify({
-        "status": "ok",
-        "model_loaded": net is not None,
-        "pytorch_version": torch.__version__,
-        "cuda_available": torch.cuda.is_available()
+        'name': 'Deep Learning Product Customizer API',
+        'version': '1.0.0',
+        'description': 'API for background removal and image customization',
+        'endpoints': {
+            '/': 'This API information',
+            '/health': 'Health check endpoint',
+            '/remove-background': 'Remove background from an image (POST)',
+            '/customize-product': 'Apply customizations to an image (POST)'
+        },
+        'status': 'running'
     })
 
 @app.route('/remove-background', methods=['POST'])
 def remove_background():
-    try:
-        logger.info(f"Received request: {request.method} {request.path}")
-        
-        if not request.is_json:
-            logger.warning("Request is not JSON")
-            return jsonify({"error": "Expected JSON data"}), 400
-        
-        data = request.json
-        
-        if not data or 'image' not in data:
-            logger.warning("No image in request")
-            return jsonify({"error": "No image provided"}), 400
-        
-        # Get base64 image
-        image_data = data['image']
-        if image_data.startswith('data:image'):
-            # Remove the prefix
-            image_data = image_data.split(',')[1]
-        
-        # Decode image
+    """Remove background from an image and return with transparent background"""
+    if request.method == 'POST':
         try:
+            # Get the image from the request
+            data = request.json
+            if not data or 'image' not in data:
+                return jsonify({'success': False, 'error': 'No image provided'}), 400
+            
+            # Decode base64 image
+            image_data = data['image']
+            if image_data.startswith('data:image'):
+                # Remove the data:image/jpeg;base64, prefix
+                image_data = image_data.split(',')[1]
+            
+            # Decode the base64 string
             image_bytes = base64.b64decode(image_data)
+            
+            # Open the image
             image = Image.open(io.BytesIO(image_bytes))
-            logger.info(f"Decoded image: {image.format} {image.size}x{image.mode}")
-        except Exception as e:
-            logger.error(f"Error decoding image: {e}")
-            return jsonify({"error": f"Invalid image data: {str(e)}"}), 400
-        
-        # Process image
-        try:
+            
+            # Process the image
+            logger.info("Processing image for background removal...")
             result = process_image(net, image)
+            
+            # Save the result to a buffer
+            buffer = io.BytesIO()
+            result.save(buffer, format="PNG")
+            buffer.seek(0)
+            
+            # Encode the buffer as base64
+            img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            
+            return jsonify({
+                'success': True,
+                'processedImageUrl': f"data:image/png;base64,{img_str}"
+            })
+            
         except Exception as e:
-            logger.error(f"Error processing image: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return jsonify({"success": False, "error": str(e)}), 500
-        
-        # Convert result to base64
-        buffered = io.BytesIO()
-        result.save(buffered, format="PNG")
-        result_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-        
-        logger.info("Successfully processed image")
-        return jsonify({
-            "success": True,
-            "processedImageUrl": f"data:image/png;base64,{result_base64}"
-        })
-    
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return jsonify({"success": False, "error": str(e)}), 500
+            logger.error(f"Error removing background: {str(e)}")
+            return jsonify({'success': False, 'error': str(e)}), 500
 
-# New endpoint for product customization
 @app.route('/customize-product', methods=['POST'])
 def customize_product():
-    try:
-        logger.info(f"Received customize request: {request.method} {request.path}")
-        
-        if not request.is_json:
-            logger.warning("Request is not JSON")
-            return jsonify({"error": "Expected JSON data"}), 400
-        
-        data = request.json
-        
-        if not data or 'image' not in data:
-            logger.warning("No image in request")
-            return jsonify({"error": "No image provided"}), 400
-        
-        # Get base64 image
-        image_data = data['image']
-        if image_data.startswith('data:image'):
-            # Remove the prefix
-            image_type = image_data.split(';')[0].split('/')[1]
-            image_data = image_data.split(',')[1]
-        
-        # Decode image
+    """Apply customizations to an image (background color)"""
+    if request.method == 'POST':
         try:
-            image_bytes = base64.b64decode(image_data)
-            image = Image.open(io.BytesIO(image_bytes))
-            logger.info(f"Decoded image: {image.format} {image.size}x{image.mode}")
+            # Get the image and background type from the request
+            data = request.json
+            if not data or 'image' not in data:
+                return jsonify({'success': False, 'error': 'No image provided'}), 400
             
-            # Convert to RGBA if not already
-            if image.mode != 'RGBA':
-                image = image.convert('RGBA')
-        except Exception as e:
-            logger.error(f"Error decoding image: {e}")
-            return jsonify({"error": f"Invalid image data: {str(e)}"}), 400
-        
-        # Get customization options
-        background_type = data.get('backgroundType', 'transparent')
-        model_type = data.get('modelType', None)
-        
-        logger.info(f"Customizing with background: {background_type}, model: {model_type}")
-        
-        # Process the image based on options
-        try:
-            # First step: Apply background if requested
-            if background_type and background_type != 'transparent':
-                image = apply_background(image, background_type)
-                logger.info(f"Applied background: {background_type}")
-            
-            # Second step: Apply model overlay if requested
-            if model_type and model_type in MODEL_OVERLAY_TEMPLATES:
-                image = apply_model_overlay(image, model_type)
-                logger.info(f"Applied model overlay: {model_type}")
-            
-        except Exception as e:
-            logger.error(f"Error customizing image: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return jsonify({"success": False, "error": str(e)}), 500
-        
-        # Convert result to base64
-        buffered = io.BytesIO()
-        image.save(buffered, format="PNG")
-        result_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-        
-        logger.info("Successfully customized image")
-        
-        # Return the customized image
-        return jsonify({
-            "success": True,
-            "processedImageUrl": f"data:image/png;base64,{result_base64}",
-            "backgroundType": background_type,
-            "modelType": model_type
-        })
-    
-    except Exception as e:
-        logger.error(f"Unexpected error in customize-product: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return jsonify({"success": False, "error": str(e)}), 500
-
-# New combined endpoint for one-step processing
-@app.route('/process-and-customize', methods=['POST'])
-def process_and_customize():
-    try:
-        logger.info(f"Received combined processing request: {request.method} {request.path}")
-        
-        if not request.is_json:
-            logger.warning("Request is not JSON")
-            return jsonify({"error": "Expected JSON data"}), 400
-        
-        data = request.json
-        
-        if not data or 'image' not in data:
-            logger.warning("No image in request")
-            return jsonify({"error": "No image provided"}), 400
-        
-        # Get base64 image
-        image_data = data['image']
-        if image_data.startswith('data:image'):
-            # Remove the prefix
-            image_type = image_data.split(';')[0].split('/')[1]
-            image_data = image_data.split(',')[1]
-        
-        # Get customization options
-        background_type = data.get('backgroundType', 'transparent')
-        model_type = data.get('modelType', None)
-        
-        logger.info(f"Processing with background: {background_type}, model: {model_type}")
-        
-        # Step 1: Decode image
-        try:
-            image_bytes = base64.b64decode(image_data)
-            image = Image.open(io.BytesIO(image_bytes))
-            logger.info(f"Decoded image: {image.format} {image.size}x{image.mode}")
-        except Exception as e:
-            logger.error(f"Error decoding image: {e}")
-            return jsonify({"error": f"Invalid image data: {str(e)}"}), 400
-        
-        # Step 2: Process image (remove background)
-        try:
-            transparent_image = process_image(net, image)
-            logger.info("Background removal successful")
-        except Exception as e:
-            logger.error(f"Error processing image: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return jsonify({"success": False, "error": str(e)}), 500
-        
-        # Step 3: Apply customization if needed
-        result_image = transparent_image
-        
-        try:
-            # Apply background if requested
-            if background_type and background_type != 'transparent':
-                result_image = apply_background(transparent_image, background_type)
-                logger.info(f"Applied background: {background_type}")
-            
-            # Apply model overlay if requested
-            if model_type and model_type in MODEL_OVERLAY_TEMPLATES:
-                result_image = apply_model_overlay(result_image, model_type)
-                logger.info(f"Applied model overlay: {model_type}")
+            # Get background type (default to transparent)
+            # Check for both parameter names
+            background_type = None
+            if 'background' in data:
+                background_type = data['background']
+            elif 'backgroundType' in data:
+                background_type = data['backgroundType']
+            else:
+                background_type = 'transparent'
                 
-        except Exception as e:
-            logger.error(f"Error during customization: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            # Continue with just the background-removed image if customization fails
-            result_image = transparent_image
-        
-        # Convert result to base64
-        buffered = io.BytesIO()
-        result_image.save(buffered, format="PNG")
-        result_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-        
-        logger.info("Successfully processed and customized image")
-        
-        # Return the processed image
-        return jsonify({
-            "success": True,
-            "processedImageUrl": f"data:image/png;base64,{result_base64}",
-            "backgroundType": background_type,
-            "modelType": model_type
-        })
-    
-    except Exception as e:
-        logger.error(f"Unexpected error in process-and-customize: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return jsonify({"success": False, "error": str(e)}), 500
-
-# Add an endpoint to list available backgrounds and models
-@app.route('/customization-options', methods=['GET'])
-def get_customization_options():
-    try:
-        # Check for available real backgrounds
-        studio_light_available = 'studio-light' in AVAILABLE_BACKGROUNDS and len(AVAILABLE_BACKGROUNDS['studio-light']) > 0
-        studio_dark_available = 'studio-dark' in AVAILABLE_BACKGROUNDS and len(AVAILABLE_BACKGROUNDS['studio-dark']) > 0
-        
-        # Get available model overlays
-        available_models = list(AVAILABLE_MODELS.keys())
-        if not available_models:
-            # Fall back to template keys if no real images
-            available_models = list(MODEL_OVERLAY_TEMPLATES.keys())
-        
-        # Build the response
-        response = {
-            "success": True,
-            "backgrounds": {
-                "solid": ["transparent", "white", "black", "gray"],
-                "studio": [],
-                "ai": ["ai-generated"]
-            },
-            "models": available_models
-        }
-        
-        # Add available studio backgrounds
-        studio_backgrounds = []
-        if studio_light_available:
-            studio_backgrounds.append("studio-light")
-        if studio_dark_available:
-            studio_backgrounds.append("studio-dark")
+            logger.info(f"Received background type: {background_type}")
             
-        if studio_backgrounds:
-            response["backgrounds"]["studio"] = studio_backgrounds
-        
-        logger.info(f"Available customization options: {response}")
-        return jsonify(response)
-    except Exception as e:
-        logger.error(f"Error retrieving customization options: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+            # Log all keys in the request for debugging
+            logger.info(f"Request data keys: {list(data.keys())}")
+            
+            # Decode base64 image
+            image_data = data['image']
+            if image_data.startswith('data:image'):
+                # Remove the data:image/jpeg;base64, prefix
+                image_data = image_data.split(',')[1]
+            
+            # Decode the base64 string
+            image_bytes = base64.b64decode(image_data)
+            
+            # Open the image
+            image = Image.open(io.BytesIO(image_bytes))
+            
+            # Apply background
+            logger.info(f"Applying {background_type} background...")
+            result = apply_background(image, background_type)
+            
+            # Save the result to a buffer
+            buffer = io.BytesIO()
+            result.save(buffer, format="PNG")
+            buffer.seek(0)
+            
+            # Encode the buffer as base64
+            img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            
+            return jsonify({
+                'success': True,
+                'processedImageUrl': f"data:image/png;base64,{img_str}",
+                'backgroundType': background_type
+            })
+            
+        except Exception as e:
+            logger.error(f"Error customizing product: {str(e)}")
+            return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     logger.info(f"Loading {args.model} model...")

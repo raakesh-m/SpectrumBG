@@ -1,1 +1,0 @@
-web: cd python_backend && gunicorn -w 4 --bind 0.0.0.0:$PORT simplified_u2net_server:app 

@@ -1,0 +1,33 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main circular background -->
+  <circle cx="100" cy="100" r="90" fill="#6366F1" />
+  
+  <!-- Inner shapes -->
+  <circle cx="100" cy="100" r="70" fill="#4F46E5" />
+  <circle cx="100" cy="100" r="50" fill="#4338CA" stroke="#E0E7FF" stroke-width="3" />
+  
+  <!-- Camera lens elements -->
+  <circle cx="100" cy="100" r="35" fill="#312E81" stroke="#E0E7FF" stroke-width="2" />
+  <circle cx="100" cy="100" r="20" fill="#A5B4FC" />
+  <circle cx="100" cy="100" r="10" fill="#FFFFFF" />
+  
+  <!-- Star elements for background removal concept -->
+  <!-- Star 1 -->
+  <path d="M40 80L43.1 89.5H53.2L45.1 95.5L48.2 105L40 99L31.8 105L34.9 95.5L26.8 89.5H36.9L40 80Z" fill="#F472B6" />
+  
+  <!-- Star 2 -->
+  <path d="M140 60L142.4 67.6H150.6L144.1 72.3L146.5 79.9L140 75.2L133.5 79.9L135.9 72.3L129.4 67.6H137.6L140 60Z" fill="#F472B6" />
+  
+  <!-- Star 3 (smaller) -->
+  <path d="M160 120L161.2 123.8H165.3L162.1 126.2L163.3 130L160 127.6L156.7 130L157.9 126.2L154.7 123.8H158.8L160 120Z" fill="#FFFFFF" opacity="0.8" />
+  
+  <!-- Accent element -->
+  <path d="M170 100C170 70.2 146 46 116 46V55C141 55 161 74.8 161 100C161 125.2 141 145 116 145V154C146 154 170 129.8 170 100Z" fill="#F472B6" />
+  
+  <!-- Highlight spots -->
+  <circle cx="85" cy="85" r="6" fill="#FFFFFF" opacity="0.7" />
+  <circle cx="75" cy="70" r="3" fill="#FFFFFF" opacity="0.5" />
+  
+  <!-- Text: SpectrumBG -->
+  <text x="100" y="180" font-family="Arial" font-size="16" font-weight="bold" fill="white" text-anchor="middle">SpectrumBG</text>
+</svg> 
