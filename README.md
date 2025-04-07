@@ -1,4 +1,4 @@
-# Background Removal Tool
+# SpectrumBG
 
 A modern web application for removing backgrounds from images using deep learning technology.
 
