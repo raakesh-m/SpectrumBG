@@ -259,7 +259,7 @@ export default function App() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>SpectrumAI • Advanced Product Customizer</title>
+        <title>SpectrumBG • Advanced Background Removal Tool</title>
         <Meta />
         <Links />
         <style dangerouslySetInnerHTML={{ __html: globalStyles }} />

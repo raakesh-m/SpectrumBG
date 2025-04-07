@@ -26,7 +26,7 @@ export default function Header() {
             <Button 
               variant="outline"
               size="sm"
-              href="https://github.com/raakesh-m/aiprod"
+              href="https://github.com/raakesh-m/SpectrumBG"
               external={true}
               icon={
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -78,7 +78,7 @@ export default function Header() {
                 Documentation
               </Link>
               <a 
-                href="https://github.com/raakesh-m/aiprod" 
+                href="https://github.com/raakesh-m/SpectrumBG" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="block px-3 py-2 rounded-md text-base font-medium text-neutral-500 hover:bg-neutral-100"

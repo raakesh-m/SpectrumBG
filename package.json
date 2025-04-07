@@ -1,11 +1,11 @@
 {
-  "name": "ai-product-customizer",
+  "name": "spectrumbg",
   "version": "1.0.0",
   "description": "AI-enhanced product customizer for e-commerce with background removal",
   "author": "Raakesh M <raakesh.m@example.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/raakesh-m/aiprod.git"
+    "url": "https://github.com/raakesh-m/SpectrumBG.git"
   },
   "license": "MIT",
   "scripts": {

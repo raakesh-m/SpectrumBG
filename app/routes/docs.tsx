@@ -136,7 +136,7 @@ export default function DocsPage() {
               <Link to="/" className="text-primary-600 hover:text-primary-800 font-medium transition-colors">
                 Back to App
               </Link>
-              <a href="https://github.com/raakesh-m/aiprod" className="text-primary-600 hover:text-primary-800 font-medium transition-colors" target="_blank" rel="noopener noreferrer">
+              <a href="https://github.com/raakesh-m/SpectrumBG" className="text-primary-600 hover:text-primary-800 font-medium transition-colors" target="_blank" rel="noopener noreferrer">
                 GitHub
               </a>
             </div>
